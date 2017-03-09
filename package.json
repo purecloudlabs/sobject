@@ -1,0 +1,22 @@
+{
+  "name": "salesforce-sobject",
+  "version": "0.0.1",
+  "description": "Queries and performs CRUD operations on SalesForce SObjects with minimal setup and a friendly API.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "SalesForce",
+    "SObject",
+    "database",
+    "table",
+    "query",
+    "CRUD",
+    "update",
+    "delete",
+    "create"
+  ],
+  "author": "Nathan Hill <binarynate@gmail.com> (https://www.linkedin.com/in/binarynate)",
+  "license": "MIT"
+}
