@@ -4,11 +4,11 @@
 * @private
 */
 export default class MockLogger {
-    log();
-    info();
-    error();
-    verbose();
-    silly();
-    warn();
-    debug();
+    log() {}
+    info() {}
+    error() {}
+    verbose() {}
+    silly() {}
+    warn() {}
+    debug() {}
 }

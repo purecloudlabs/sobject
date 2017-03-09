@@ -1,4 +1,5 @@
 import { validate } from 'parameter-validator';
+import { getBasicQueryComparison } from './SObject';
 
 /**
 * Whereas most SObject properties are mapped with a basic relationship to rename the property

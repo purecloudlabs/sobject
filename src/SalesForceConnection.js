@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import request from 'request-promise-native';
-import { validate, validateAsync, ParameterValidationError } from 'parameter-validator';
+import { validate } from 'parameter-validator';
 import url from 'url';
 import PromiseHelper from './PromiseHelper';
 import MockLogger from './MockLogger';
@@ -39,6 +39,7 @@ class SalesForceConnection {
             'password'
         ], this, { addPrefix: '_' });
 
+        this._logger = options.logger || new MockLogger();
         this._requestTimeoutMs = options.requestTimeoutMs || 30000;
         this._requestRetriesMax = options.requestRetriesMax === undefined ? 8 : options.requestRetriesMax;
     }
@@ -104,7 +105,7 @@ class SalesForceConnection {
         .catch(error => {
 
             if (error.statusCode !== 401) {
-                this._logger.error('An error occurred while executing a SalesForce request.', { err, args });
+                this._logger.error('An error occurred while executing a SalesForce request.', { error, options });
                 throw error;
             }
 
@@ -115,7 +116,7 @@ class SalesForceConnection {
             }
 
             this._renewAccessToken();
-            return this._request(options, --authRetryLimit);
+            return this._request(options, --authRetriesRemaining);
         });
     }
 
@@ -157,4 +158,4 @@ class SalesForceConnection {
     }
 }
 
-export default SalesForceClient;
+export default SalesForceConnection;

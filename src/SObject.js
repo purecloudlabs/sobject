@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { validate, validateAsync } from 'parameter-validator';
 import { ParameterValidationError } from 'parameter-validator';
-import ResourceNotFoundError from '/ResourceNotFoundError';
+import { ResourceNotFoundError, NotImplementedError } from './errors';
 import convertPropertyNames from './convertPropertyNames';
 import LeftInnerJoinRelationship from './LeftInnerJoinRelationship';
 import MockLogger from './MockLogger';
@@ -39,7 +39,7 @@ class SObject {
         if (options.apiVersion) {
 
             let versionNumber = Number.parseFloat(options.apiVersion);
-            if (versionNumber === NaN) {
+            if (isNaN(versionNumber)) {
                 throw new ParameterValidationError(`Provided version number '${versionNumber} is not a number.'`);
             }
             this._apiVersion = versionNumber.toFixed(1).toString();
@@ -212,9 +212,7 @@ class SObject {
         .then(({ id }) => {
 
             entity = _.cloneDeep(entity);
-            let returnValue = { id },
-                entityToSend;
-
+            let returnValue = { id };
             // SalesForce doesn't allow the ID in the request body for requests to
             // their data services API.
             delete entity.id;
@@ -227,11 +225,11 @@ class SObject {
             .then(formattedEntity => this._request({
                 url: this._objectUrlPath + id,
                 method: 'patch',
-                json: entityToSend
+                json: formattedEntity
             }))
             .then(() => returnValue);
         })
-        .catch(error => this._updateAndThrow(error, {entity, method: 'update'}));
+        .catch(error => this._updateAndThrow(error, { entity, method: 'update' }));
     }
 
     /**
@@ -492,7 +490,7 @@ class SObject {
             method: 'get',
             json: true,
             qs: { q: query }
-        }))
+        })
         .then(response => this._getRemainingQueryRecords(response));
     }
 
@@ -595,7 +593,7 @@ class SObject {
                     url: nextRecordsUrl,
                     method: 'get',
                     json: true
-                }))
+                })
                 .then(response => this._getRemainingQueryRecords(response))
                 .then(remainingRecords => records.concat(remainingRecords));
             }
@@ -623,7 +621,7 @@ export default SObject;
 * @param {string}              property
 * @param {string|number|Array} value
 */
-function getBasicQueryComparison(property, value) {
+export function getBasicQueryComparison(property, value) {
 
     if (typeof value === 'string') {
         // Include single quotes for a string literal.

@@ -24,7 +24,7 @@
 * 	}
 * }
 */
-export default class ExtendableError extends Error {
+export class ExtendableError extends Error {
 
 	constructor(message) {
 		super(message);
@@ -35,3 +35,13 @@ export default class ExtendableError extends Error {
         }
 	}
 }
+
+/**
+* Error indicating that a requested resource could not be found (i.e. HTTP status 404).
+*/
+export class ResourceNotFoundError extends ExtendableError {}
+
+/**
+* Error indicating that an abstract method was not implemented.
+*/
+export class NotImplementedError extends ExtendableError {}
