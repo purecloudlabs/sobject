@@ -4,7 +4,9 @@
   "description": "Queries and performs CRUD operations on SalesForce SObjects with minimal setup and a friendly API.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "jshint src && jshint test",
+    "build": "npm run lint && rm -rf dist && babel src --out-dir dist",
+    "test": "mocha --compilers js:babel-core/register"
   },
   "keywords": [
     "SalesForce",
@@ -24,6 +26,15 @@
     "lodash": "^4.17.4",
     "parameter-validator": "^1.0.1",
     "request": "^2.80.0",
-    "request-promise-native": "^1.0.3"
+    "request-promise-native": "^1.0.3",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.23.0",
+    "babel-plugin-transform-builtin-extend": "^1.1.2",
+    "babel-preset-latest": "^6.22.0",
+    "chai": "^3.5.0",
+    "jshint": "^2.9.4",
+    "mocha": "^3.2.0"
   }
 }
