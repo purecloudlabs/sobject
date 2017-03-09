@@ -22,6 +22,8 @@
   "dependencies": {
     "flat": "^2.0.1",
     "lodash": "^4.17.4",
-    "parameter-validator": "^1.0.1"
+    "parameter-validator": "^1.0.1",
+    "request": "^2.80.0",
+    "request-promise-native": "^1.0.3"
   }
 }

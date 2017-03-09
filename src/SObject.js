@@ -186,16 +186,9 @@ class SObject {
     */
     insert(entity) {
         return this.convertToSalesForceFormat(entity)
-        .then(formattedEntity => {
-
-            return this.getBasicRequestor({
-                operationName: 'insert',
-            }).then(requestor => {
-                return requestor
-                .withResponseModifier((res, body) => ({id: body.id}))
-                .execute(this.getInsertExecuteParams(formattedEntity));
-            });
-        }).catch(error => this._updateAndThrow(error, {entity, method: 'insert'}));
+        .then(formattedEntity => this._request(this.getInsertExecuteParams(formattedEntity)))
+        .then(response => _.pick(response, [ 'id' ]))
+        .catch(error => this._updateAndThrow(error, {entity, method: 'insert'}));
     }
 
     /**
@@ -214,12 +207,12 @@ class SObject {
     * @throws  {BadRequestError}
     */
     update(entity) {
-        return Promise.resolve()
-        .then(() => {
-            entity = _.cloneDeep(entity);
 
-            let { id } = validate(entity, [ 'id' ]),
-                returnValue = {id},
+        return validateAsync(entity, [ 'id' ])
+        .then(({ id }) => {
+
+            entity = _.cloneDeep(entity);
+            let returnValue = { id },
                 entityToSend;
 
             // SalesForce doesn't allow the ID in the request body for requests to
@@ -230,24 +223,15 @@ class SObject {
                 // No properties were specified to update, so don't bother sending a request to SalesForce.
                 return returnValue;
             }
-
             return this.convertToSalesForceFormat(entity)
-            .then(formattedEntity => {
-                entityToSend = formattedEntity;
-                return this.getBasicRequestor({
-                    operationName: 'update',
-                });
-            })
-            .then(requestor => {
-                return requestor
-                .withResponseModifier(() => returnValue)
-                .execute({
-                    uri: this._objectUrlPath + id,
-                    method: 'patch',
-                    json: entityToSend
-                });
-            });
-        }).catch(error => this._updateAndThrow(error, {entity, method: 'update'}));
+            .then(formattedEntity => this._request({
+                url: this._objectUrlPath + id,
+                method: 'patch',
+                json: entityToSend
+            }))
+            .then(() => returnValue);
+        })
+        .catch(error => this._updateAndThrow(error, {entity, method: 'update'}));
     }
 
     /**
@@ -263,22 +247,15 @@ class SObject {
     * @throws  {BadRequestError}
     */
     delete(options) {
-        return Promise.resolve()
-        .then(() => {
-            validate(options, [ 'id' ]);
 
-            return this.getBasicRequestor({
-                operationName: 'delete',
-            });
-        }).then((requestor) => {
-            return requestor
-            .withResponseModifier(() => ({id: options.id}))
-            .execute({
-                uri: this._objectUrlPath + options.id,
-                method: 'delete',
-                json: true
-            });
-        }).catch(error => this._updateAndThrow(error, {options, method: 'delete'}));
+        return validateAsync(options, [ 'id' ])
+        .then(({ id }) => this._request({
+            url: this._objectUrlPath + id,
+            method: 'delete',
+            json: true
+        }))
+        .then(() => ({ id: options.id }))
+        .catch(error => this._updateAndThrow(error, { options, method: 'delete' }));
     }
 
     /**
@@ -332,13 +309,6 @@ class SObject {
         .then(propertyMap => Object.keys(propertyMap).sort());
     }
 
-    getBasicRequestor(options) {
-        // The getBasicRequestor implementation stays inside of salesForceClient, because
-        // it's expected that all of the SObjectStorage instances will share the same
-        // SalesForceClient instance.
-        return this.salesForceClient.getBasicRequestor(options);
-    }
-
     /**
     * Transforms the property names of the entity according to the map of SalesForce properties to their
     * friendly names. You can override this method if you want to do additional or different formatting.
@@ -365,9 +335,9 @@ class SObject {
     * to supply additional parameters to execute(), like headers.
     * @virtual
     */
-    getInsertExecuteParams(entity) {
+    getInsertRequestParams(entity) {
         return {
-            uri: this._objectUrlPath,
+            url: this._objectUrlPath,
             method: 'post',
             json: entity
         };
@@ -501,7 +471,7 @@ class SObject {
     */
     getQueryExecution(soqlQuery) {
         return {
-            uri: this._queryUrlPath,
+            url: this._queryUrlPath,
             method: 'get',
             json: true,
             qs: {q: soqlQuery}
@@ -517,16 +487,11 @@ class SObject {
     */
     executeQuery(query) {
 
-        return this.getBasicRequestor({
-            operationName: 'query'
-        })
-        .then(requestor => requestor
-            .withResponseModifier(returnBody)
-            .execute({
-                uri: this._queryUrlPath,
-                method: 'get',
-                json: true,
-                qs: {q: query}
+        return this._request({
+            url: this._queryUrlPath,
+            method: 'get',
+            json: true,
+            qs: { q: query }
         }))
         .then(response => this._getRemainingQueryRecords(response));
     }
@@ -626,13 +591,10 @@ class SObject {
             // for forever if the response doesn't contain a `done` property for some reason.
             if (done === false && nextRecordsUrl) {
 
-                return this.getBasicRequestor({ operationName: '_getRemainingQueryRecords' })
-                .then(requestor => requestor
-                    .withResponseModifier(returnBody)
-                    .execute({
-                        uri: nextRecordsUrl,
-                        method: 'get',
-                        json: true
+                return this._request({
+                    url: nextRecordsUrl,
+                    method: 'get',
+                    json: true
                 }))
                 .then(response => this._getRemainingQueryRecords(response))
                 .then(remainingRecords => records.concat(remainingRecords));
@@ -640,6 +602,10 @@ class SObject {
 
             return records;
         });
+    }
+
+    _request() {
+        return this._connection.request(...arguments);
     }
 }
 
