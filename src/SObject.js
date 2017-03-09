@@ -1,118 +1,68 @@
 import _ from 'lodash';
-import ParameterValidator from 'parameter-validator';
+import { validate } from 'parameter-validator';
 import { ParameterValidationError } from 'parameter-validator';
-import { returnBody } from '../../../util/requestHelper';
-import StorageProvider from '../../../models/StorageProvider';
-import { ResourceNotFoundError, NotImplementedError } from '../../../models/errors';
-import convertPropertyNames from '../../../util/convertPropertyNames';
+import ResourceNotFoundError from '/ResourceNotFoundError';
+import convertPropertyNames from './convertPropertyNames';
+import LeftInnerJoinRelationship from './LeftInnerJoinRelationship';
+import MockLogger from './MockLogger';
 
 /**
-* Whereas most SObject properties are mapped with a basic relationship to rename the property
-* (e.g. { listPrice: 'List_Price__c' }), this class can be used to define a more complex relationship
-* involving a left inner join.
-*
-* For more info on the different types of SOQL joins, see this page:
-* https://developer.salesforce.com/page/A_Deeper_look_at_SOQL_and_Relationship_Queries_on_Force.com
-*
-* @example
-* // Example of how this relationship can be used to add a `pureCloudOrgId` object to a quote object.
-* // The result is that `storage.query({ pureCloudOrgId: 'org0' })` gets translated into
-* // "SELECT <other properties> FROM zqu__Quote__c where zqu__Account__c IN (SELECT Account__c FROM PureCloud_Organization__c WHERE Org_ID__c = 'org0'"
-*
-* get propertyMap {
-*    ...
-*    pureCloudOrgId: new LeftInnerJoinRelationship({
-*        property: 'zqu__Account__c',
-*        relatedObject: {
-*            name: 'PureCloud_Organization__c',
-*            comparisonProperty: 'Account__c', // PureCloud_Organization__r.Account__c
-*            queryValueProperty: 'Org_ID__c'   // PureCloud_Organization__r.Org_ID__c
-*        }
-*    })
-*    ...
-* }
-*/
-export class LeftInnerJoinRelationship {
-
-    /**
-    * @param {Object} options
-    * @param {string} options.property                         - The SalesForce name of the property on the local object
-    * @param {Object} options.relatedObject
-    * @param {string} options.relatedObject.name               - The name of the related SalesForce SObject
-    * @param {string} options.relatedObject.comparisonProperty - The name of the property against the local object's property will be compared
-    * @param {string} options.relatedObject.queryValueProperty - The name of the property used for querying
-    */
-    constructor(options) {
-
-        let parameterValidator = new ParameterValidator();
-        parameterValidator.validate(options, [
-            'property',
-            'relatedObject'
-        ], this);
-
-        parameterValidator.validate(this.relatedObject, [
-            'name',
-            'comparisonProperty',
-            'queryValueProperty'
-        ]);
-    }
-
-    /**
-    * Creates a query comparison that can be included in the predicate of a SOQL query.
-    *
-    * @param   {string|number} value
-    * @returns {string}
-    */
-    createQueryComparison(value) {
-
-        return `${this.property} IN (SELECT ${this.relatedObject.comparisonProperty} FROM ${this.relatedObject.name} WHERE ${getBasicQueryComparison(this.relatedObject.queryValueProperty, value)})`;
-    }
-}
-
-
-/**
-* An abstract class that provides basic functionality for performing CRUD operations on SalesForce
+* A class that provides basic functionality for performing CRUD operations on SalesForce
 * SObjects via SalesForce's REST API. To use this class, extend it and override at least
-* salesForceObjectName and propertyMap in your subclass - this will allow you to use the default
+* objectName and propertyMap in your subclass - this will allow you to use the default
 * implementations of the crud methods and the methods for converting to/from the SalesForce format.
 * If you need additional functionality, you can either update this base class to support the functionality
 * if it is general enough to be useful for others and doesn't break default functionality, or you can
 * override / extend the method in your subclass.
 * @abstract
 */
-export default class SObjectStorage extends StorageProvider {
+class SObject {
 
     /**
     * @param {object}               options
-    * @param {SalesForceClient}     options.salesForceClient
-    * @param {string}               [options.salesForceObjectName] - Allows the salesForceObjectName to be defined without
+    * @param {SalesForceConnection} options.connection
+    * @param {string}               [options.objectName]           - Allows the objectName to be defined without
     *                                                                creating a subclass to override that property.
     * @param {object}               [options.propertyMap]          - Allows the propertyMap to be defined without
     *                                                                creating a subclass to override that property.
+    * @param {int|float|string}     [options.apiVersion='34.0']       - e.g. '30.0', 31, 32.0
+    * @param {Object}               [options.logger]               - Optional Winston-style logger for capturing log output.
     */
     constructor(options) {
         super();
-        this.parameterValidator = new ParameterValidator();
-        this.parameterValidator.validate(options, ['salesForceClient'], this);
-        this._salesForceObjectName = options.salesForceObjectName;
+        validate(options, [ 'connection' ], this);
+        this._objectName = options.objectName || options.salesForceObjectName; // Respect the legacy `salesForceObjectName` option.
         this._propertyMap = options.propertyMap;
+        this._logger = options.logger || new MockLogger();
+        this._apiVersion = '34.0';
 
-        // An alias for utils/convertPropertyNames, saved as an instance method to facilitate spying in unit tests.
-        this.convertPropertyNames = convertPropertyNames;
+        if (options.apiVersion) {
+
+            let versionNumber = Number.parseFloat(options.apiVersion);
+            if (versionNumber === NaN) {
+                throw new ParameterValidationError(`Provided version number '${versionNumber} is not a number.'`);
+            }
+            this._apiVersion = versionNumber.toFixed(1).toString();
+        }
+
+        // An alias for convertPropertyNames, saved as an instance method to facilitate spying in unit tests.
+        this._convertPropertyNames = convertPropertyNames;
     }
 
     /**
     * Override this class to specify your SObject's name.
     *
     * @example
-    * get salesForceObjectName() {
+    * get objectName() {
     *     return 'Order__c'
     * }
     *
     * @virtual
     */
-    get salesForceObjectName() {
-        if (this._salesForceObjectName) { return this._salesForceObjectName; }
+    get objectName() {
+        if (this._objectName) { return this._objectName; }
+        // Respect the legacy `salesForceObjectName` property if it is overridden.
+        if (this.salesForceObjectName) { return this.salesForceObjectName; }
         return new NotImplementedError();
     }
 
@@ -127,8 +77,8 @@ export default class SObjectStorage extends StorageProvider {
     * @ example
     * get propertyMap() {
     *     return {
-    *         zuoraId: 'zqu__Zuora_ID__c',
-    *         axLegalEntityId: 'Country__r.AX_Legal_Entity_ID__c'
+    *         name: 'Name',
+    *         primaryContactEmail: 'Primary_Contact__r.Email__c'
     *     };
     * }
     *
@@ -155,8 +105,8 @@ export default class SObjectStorage extends StorageProvider {
     * @example
     * getPropertyMap() {
     *     return {
-    *         zuoraId: 'zqu__Zuora_ID__c',
-    *         axLegalEntityId: 'Country__r.AX_Legal_Entity_ID__c'
+    *         name: 'Name',
+    *         primaryContactEmail: 'Primary_Contact__r.Email__c'
     *     };
     * }
 
@@ -189,7 +139,7 @@ export default class SObjectStorage extends StorageProvider {
         .then(propertyNames => {
 
             // Validate that a value was provided for at least one property.
-            this.parameterValidator.validate(options, [ propertyNames ]);
+            validate(options, [ propertyNames ]);
 
             // Perform a query and return the first result. A query is performed instead of fetching the entity
             // directly by ID for two reasons: 1) it allows the entity to be looked up by other properties and
@@ -201,7 +151,7 @@ export default class SObjectStorage extends StorageProvider {
             if (results.length) {
                 return results[0];
             }
-            throw new ResourceNotFoundError(`No ${this.salesForceObjectName} found for the properties: ${JSON.stringify(options)}`);
+            throw new ResourceNotFoundError(`No ${this.objectName} found for the properties: ${JSON.stringify(options)}`);
         })
         .catch(error => this._updateAndThrow(error, {options, method: 'get'}));
     }
@@ -249,29 +199,6 @@ export default class SObjectStorage extends StorageProvider {
     }
 
     /**
-    * @virtual
-    * @param   {array.<object>}   entities
-    * @returns {Promise.<object>} insertedEntities
-    * @returns {string}           insertedEntities[i].id
-    */
-    insertMany(entities) {
-        return this.convertArrayToSalesForceFormat(entities)
-        .then(formattedEntities => {
-            return this.getBasicRequestor({
-                operationName: 'insertMany',
-            }).then(requestor => {
-                return requestor
-                .withResponseModifier((res, body) => body.entities.map(entity => ({id: entity.id})))
-                .execute({
-                    uri: this.apexRestServicesUrlPath + 'PureCloudBulkStorage',
-                    method: 'post',
-                    json: {entities: formattedEntities}
-                });
-            });
-        }).catch(error => this._updateAndThrow(error, {entities, method: 'insertMany'}));
-    }
-
-    /**
     * Converts the given entity from 'friendly' format to the ugly SalesForce format
     * and updates it. You can override this method if you want to do additional
     * formatting or data massaging prior to the update.
@@ -291,7 +218,7 @@ export default class SObjectStorage extends StorageProvider {
         .then(() => {
             entity = _.cloneDeep(entity);
 
-            let {id} = this.parameterValidator.validate(entity, ['id']),
+            let { id } = validate(entity, [ 'id' ]),
                 returnValue = {id},
                 entityToSend;
 
@@ -315,35 +242,12 @@ export default class SObjectStorage extends StorageProvider {
                 return requestor
                 .withResponseModifier(() => returnValue)
                 .execute({
-                    uri: this.objectUrlPath + id,
+                    uri: this._objectUrlPath + id,
                     method: 'patch',
                     json: entityToSend
                 });
             });
         }).catch(error => this._updateAndThrow(error, {entity, method: 'update'}));
-    }
-
-    /**
-    * @virtual
-    * @param   {array.<object>}   entities
-    * @returns {Promise.<object>} updatedEntities
-    * @returns {string}           updatedEntities[i].id
-    */
-    updateMany(entities) {
-        return this.convertArrayToSalesForceFormat(entities)
-        .then(formattedEntities => {
-            return this.getBasicRequestor({
-                operationName: 'updateMany',
-            }).then(requestor => {
-                return requestor
-                .withResponseModifier((res, body) => body.entities.map(entity => ({id: entity.id})))
-                .execute({
-                    uri: this.apexRestServicesUrlPath + 'PureCloudBulkStorage',
-                    method: 'patch',
-                    json: {entities: formattedEntities}
-                });
-            });
-        }).catch(error => this._updateAndThrow(error, {entities, method: 'updateMany'}));
     }
 
     /**
@@ -361,7 +265,7 @@ export default class SObjectStorage extends StorageProvider {
     delete(options) {
         return Promise.resolve()
         .then(() => {
-            this.parameterValidator.validate(options, ['id']);
+            validate(options, [ 'id' ]);
 
             return this.getBasicRequestor({
                 operationName: 'delete',
@@ -370,52 +274,11 @@ export default class SObjectStorage extends StorageProvider {
             return requestor
             .withResponseModifier(() => ({id: options.id}))
             .execute({
-                uri: this.objectUrlPath + options.id,
+                uri: this._objectUrlPath + options.id,
                 method: 'delete',
                 json: true
             });
         }).catch(error => this._updateAndThrow(error, {options, method: 'delete'}));
-    }
-
-    /**
-    * @virtual
-    * @param   {array.<object>}   entities
-    * @returns {Promise.<object>} deletedEntities
-    * @returns {string}           deletedEntities[i].id
-    */
-    deleteMany(entities) {
-        return Promise.resolve().then(() => {
-            if (!Array.isArray(entities)) {
-                throw new ParameterValidationError(`Parameter of ${typeof entities} is invalid - the first parameter must be an array.`);
-            }
-            if (!entities.length) {
-                throw new ParameterValidationError(`No entities were provided for deletion.`);
-            }
-
-            let invalidEntities = [],
-                ids = [];
-
-            for(let entity of entities) {
-                let {id} = entity;
-                if (typeof id === 'string') {
-                    ids.push(id);
-                } else {
-                    invalidEntities.push(entity);
-                }
-            }
-            return this.getBasicRequestor({
-                operationName: 'deleteMany',
-            }).then(requestor => {
-                return requestor
-                .withResponseModifier((res, body) => body.results.map(id => ({id})))
-                .execute({
-                    uri: this.apexRestServicesUrlPath + 'PureCloudBulkStorage',
-                    method: 'delete',
-                    json: true,
-                    qs: {ids: ids.join(',')}
-                });
-            });
-        }).catch(error => this._updateAndThrow(error, {entities, method: 'deleteMany'}));
     }
 
     /**
@@ -492,7 +355,7 @@ export default class SObjectStorage extends StorageProvider {
         ])
         .then(([ reversePropertyMap, propertyNames ]) => {
 
-            let convertedEntity = this.convertPropertyNames(entity, reversePropertyMap);
+            let convertedEntity = this._convertPropertyNames(entity, reversePropertyMap);
             return _.pick(convertedEntity, propertyNames);
         });
     }
@@ -504,7 +367,7 @@ export default class SObjectStorage extends StorageProvider {
     */
     getInsertExecuteParams(entity) {
         return {
-            uri: this.objectUrlPath,
+            uri: this._objectUrlPath,
             method: 'post',
             json: entity
         };
@@ -558,7 +421,7 @@ export default class SObjectStorage extends StorageProvider {
                 }
             }
 
-            let convertedEntity = this.convertPropertyNames(entity, propertyMap);
+            let convertedEntity = this._convertPropertyNames(entity, propertyMap);
 
             for (let propertyName of Object.keys(convertedEntity)) {
 
@@ -575,7 +438,7 @@ export default class SObjectStorage extends StorageProvider {
                 }
             }
             if (includeAttributesProperty) {
-                convertedEntity.attributes = {type: this.salesForceObjectName};
+                convertedEntity.attributes = {type: this.objectName};
             }
             return convertedEntity;
         });
@@ -590,20 +453,29 @@ export default class SObjectStorage extends StorageProvider {
         });
     }
 
-    get dataServicesUrlPath() {
-        return this.salesForceClient.dataServicesUrlPath;
+    /**
+    * Allows a subclass to provide a different class to use instead of the default ResourceNotFoundError.
+    *
+    * @private
+    */
+    get resourceNotFoundErrorClass() {
+
+        return ResourceNotFoundError;
     }
 
-    get objectUrlPath() {
-        return this.dataServicesUrlPath + `sobjects/${this.salesForceObjectName}/`;
+    get _dataServicesUrlPath() {
+
+        return `services/data/v${this._apiVersion}/`;
     }
 
-    get queryUrlPath() {
-        return this.salesForceClient.dataServicesQueryUrlPath;
+    get _objectUrlPath() {
+
+        return this._dataServicesUrlPath + `sobjects/${this.objectName}/`;
     }
 
-    get apexRestServicesUrlPath() {
-        return this.salesForceClient.apexRestServicesUrlPath;
+    get _queryUrlPath() {
+
+        return this._dataServicesUrlPath + 'query';
     }
 
     /**
@@ -619,7 +491,7 @@ export default class SObjectStorage extends StorageProvider {
             this.getSalesForcePropertyNames()
         ])
         .then(([ predicate, salesForcePropertyNames ]) => {
-            return  `SELECT ${salesForcePropertyNames.join(', ')} FROM ${this.salesForceObjectName} ${predicate} ORDER BY CreatedDate DESC`;
+            return  `SELECT ${salesForcePropertyNames.join(', ')} FROM ${this.objectName} ${predicate} ORDER BY CreatedDate DESC`;
         });
     }
 
@@ -629,7 +501,7 @@ export default class SObjectStorage extends StorageProvider {
     */
     getQueryExecution(soqlQuery) {
         return {
-            uri: this.queryUrlPath,
+            uri: this._queryUrlPath,
             method: 'get',
             json: true,
             qs: {q: soqlQuery}
@@ -651,7 +523,7 @@ export default class SObjectStorage extends StorageProvider {
         .then(requestor => requestor
             .withResponseModifier(returnBody)
             .execute({
-                uri: this.queryUrlPath,
+                uri: this._queryUrlPath,
                 method: 'get',
                 json: true,
                 qs: {q: query}
@@ -659,18 +531,14 @@ export default class SObjectStorage extends StorageProvider {
         .then(response => this._getRemainingQueryRecords(response));
     }
 
-    get logger() {
-        return this.salesForceClient.logger;
-    }
-
     _updateAndThrow(error, data = {}) {
 
         Object.assign(data, {
-            'SObject type': this.salesForceObjectName,
+            'SObject type': this.objectName,
             message: error.message,
             stack: error.stack
         });
-        this.logger.error('Error in Salesforce request', data);
+        this._logger.error('Error in Salesforce request', data);
         throw error;
     }
 
@@ -775,6 +643,7 @@ export default class SObjectStorage extends StorageProvider {
     }
 }
 
+export default SObject;
 
 /**
 * Returns a string representing a comparison for a given query property. Strings returned

@@ -18,5 +18,10 @@
     "create"
   ],
   "author": "Nathan Hill <binarynate@gmail.com> (https://www.linkedin.com/in/binarynate)",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "flat": "^2.0.1",
+    "lodash": "^4.17.4",
+    "parameter-validator": "^1.0.1"
+  }
 }
