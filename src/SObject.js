@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { validate } from 'parameter-validator';
+import { validate, validateAsync } from 'parameter-validator';
 import { ParameterValidationError } from 'parameter-validator';
 import ResourceNotFoundError from '/ResourceNotFoundError';
 import convertPropertyNames from './convertPropertyNames';
