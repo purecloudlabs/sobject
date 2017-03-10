@@ -2,7 +2,7 @@
   "name": "salesforce-sobject",
   "version": "0.0.1",
   "description": "Queries and performs CRUD operations on SalesForce SObjects with minimal setup and a friendly API.",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "lint": "jshint src && jshint test",
     "build": "npm run lint && rm -rf dist && babel src --out-dir dist",
