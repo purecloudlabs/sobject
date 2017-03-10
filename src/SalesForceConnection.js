@@ -6,7 +6,9 @@ import PromiseHelper from './PromiseHelper';
 import MockLogger from './MockLogger';
 
 /**
- * Manages a session with and requests to SalesForce's REST API.
+ * Manages a session with and requests to SalesForce's REST API, including authentication and automatically retrying requests.
+ * This class's interface consists of a single `request()` method, so if you want different request-level functionality, you
+ * can extend this class or implement a replacement with the same interface.
  */
 class SalesForceConnection {
 
@@ -37,6 +39,19 @@ class SalesForceConnection {
         this._requestRetriesMax = options.requestRetriesMax === undefined ? 8 : options.requestRetriesMax;
     }
 
+    /**
+    * Sends a request to the SalesForce REST API. The options available are those for the [`request` module](https://www.npmjs.com/package/request),
+    * although in reality, only the small subset of options listed here are used by SObject.
+    *
+    * @param   {Object}      options          - options passed to the `request` module
+    * @param   {string}      options.url      - The relative API URL path (e.g. 'services/data/v36.0/sobjects/Account/00129000009VuH3AAK').
+    *                                           Unlike the other options, this one isn't passed directly to the `request` module; it's appended
+    *                                           to the instance URL obtained through authentication
+    * @param   {string}      options.method   - e.g. 'post', 'get'
+    * @param   {Object|bool} options.json
+    * @param   {Object}      options.headers
+    * @returns {Promise} - Promise that resolve to the deserialized response body
+    */
     request(options) {
 
         return PromiseHelper.executeWithRetry(
@@ -47,7 +62,6 @@ class SalesForceConnection {
             }
         );
     }
-
 
     _getAccessToken() {
         if (!this._accessTokenPromise) {

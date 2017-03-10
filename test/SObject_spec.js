@@ -21,7 +21,6 @@ describe('SObject', () => {
         idEntities,
         salesForceEntitiesWithAttributes,
         constructorParams,
-        connectionWithLoginError,
         reversePropertyMap,
         dataServicesUrlPath,
         failedLoginPromise;

@@ -20,7 +20,8 @@ class SObject {
 
     /**
     * @param {object}               options
-    * @param {SalesForceConnection} options.connection
+    * @param {SalesForceConnection} options.connection          - Either an instance of this module's default SalesForceConnection
+    *                                                             class or a custom version that implements its simple interface.
     * @param {string}               [options.objectName]        - Allows the objectName to be defined without
     *                                                             creating a subclass to override that property.
     * @param {object}               [options.propertyMap]       - Allows the propertyMap to be defined without
