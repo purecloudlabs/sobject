@@ -6,6 +6,8 @@ import convertPropertyNames from './convertPropertyNames';
 import LeftInnerJoinRelationship from './LeftInnerJoinRelationship';
 import MockLogger from './MockLogger';
 
+const DEFAULT_API_VERSION = '34.0';
+
 /**
 * A class that provides basic functionality for performing CRUD operations on SalesForce
 * SObjects via SalesForce's REST API. To use this class, extend it and override at least
@@ -21,20 +23,20 @@ class SObject {
     /**
     * @param {object}               options
     * @param {SalesForceConnection} options.connection
-    * @param {string}               [options.objectName]           - Allows the objectName to be defined without
-    *                                                                creating a subclass to override that property.
-    * @param {object}               [options.propertyMap]          - Allows the propertyMap to be defined without
-    *                                                                creating a subclass to override that property.
-    * @param {int|float|string}     [options.apiVersion='34.0']       - e.g. '30.0', 31, 32.0
-    * @param {Object}               [options.logger]               - Optional Winston-style logger for capturing log output.
+    * @param {string}               [options.objectName]        - Allows the objectName to be defined without
+    *                                                             creating a subclass to override that property.
+    * @param {object}               [options.propertyMap]       - Allows the propertyMap to be defined without
+    *                                                             creating a subclass to override that property.
+    * @param {int|float|string}     [options.apiVersion='34.0'] - e.g. '30.0', 31, 32.0
+    * @param {Object}               [options.logger]            - Optional Winston-style logger for capturing log output.
     */
     constructor(options) {
-        super();
+
         validate(options, [ 'connection' ], this);
         this._objectName = options.objectName || options.salesForceObjectName; // Respect the legacy `salesForceObjectName` option.
         this._propertyMap = options.propertyMap;
         this._logger = options.logger || new MockLogger();
-        this._apiVersion = '34.0';
+        this._apiVersion = DEFAULT_API_VERSION;
 
         if (options.apiVersion) {
 
