@@ -4,7 +4,7 @@ import _ from 'lodash';
 import { ParameterValidationError } from 'parameter-validator';
 import SObject from '../src/SObject';
 import SalesForceConnection from '../src/SalesForceConnection';
-import LeftInnerJoinRelationship from '../src/SObject';
+import LeftInnerJoinRelationship from '../src/LeftInnerJoinRelationship';
 
 describe('SObject', () => {
 
@@ -22,7 +22,6 @@ describe('SObject', () => {
         salesForceEntitiesWithAttributes,
         constructorParams,
         connectionWithLoginError,
-        storageWithLoginError,
         reversePropertyMap,
         dataServicesUrlPath,
         failedLoginPromise;
@@ -56,7 +55,6 @@ describe('SObject', () => {
 
         constructorParams = { connection, objectName, propertyMap };
         storage = new SObject(constructorParams);
-        storageWithLoginError = new SObject({ connection, objectName, propertyMap });
         salesForceEntity = {
             Id: 'pet0',
             Name: 'Jimothy',
@@ -137,13 +135,13 @@ describe('SObject', () => {
 
                 storage.get = stub().returns(failedLoginPromise);
 
-                return storageWithLoginError.get({ id: 'pet0' })
+                return storage.get({ id: 'pet0' })
                 .then(() => {
                     throw new Error('Expected first get to throw an error');
                 })
                 .catch(error => {
                     expect(error.message).to.equal('failed login');  // i.e. doesn't include the request data for this request
-                    return storageWithLoginError.get({ id: 'pet1' });
+                    return storage.get({ id: 'pet1' });
                 })
                 .then(() => {
                     throw new Error('Expected second get to throw an error');
@@ -178,8 +176,8 @@ describe('SObject', () => {
 
             return storage.insert(friendlyFormattedEntity)
             .then(() => {
-                expect(storage.getInsertExecuteParams.callCount).to.equal(1);
-                expect(storage.getInsertExecuteParams.firstCall.args).to.deep.equal([ formattedEntity ]);
+                expect(storage.getInsertRequestParams.callCount).to.equal(1);
+                expect(storage.getInsertRequestParams.firstCall.args).to.deep.equal([ formattedEntity ]);
                 expect(connection.request.callCount).to.equal(1);
                 expect(connection.request.firstCall.args).to.deep.equal([ requestParams ]);
             });
@@ -386,7 +384,7 @@ describe('SObject', () => {
 
         it(`converts the entity using convertPropertyNames() and the property map from getPropertyMap()`, () => {
 
-            spy(storage, 'convertPropertyNames');
+            spy(storage, '_convertPropertyNames');
 
             let expectedPropertyMap = { property1: 'first', property2: 'second' };
             stub(storage, 'getPropertyMap').returns(Promise.resolve(expectedPropertyMap));
@@ -397,9 +395,9 @@ describe('SObject', () => {
             return storage.convertToSalesForceFormat(friendlyFormattedEntity)
             .then(() => {
                 expect(storage.getPropertyMap.callCount).to.equal(1);
-                expect(storage.convertPropertyNames.callCount).to.equal(1);
-                expect(storage.convertPropertyNames.firstCall.args[0]).to.equal(friendlyFormattedEntity);
-                expect(storage.convertPropertyNames.firstCall.args[1]).to.deep.equal(expectedPropertyMap);
+                expect(storage._convertPropertyNames.callCount).to.equal(1);
+                expect(storage._convertPropertyNames.firstCall.args[0]).to.equal(friendlyFormattedEntity);
+                expect(storage._convertPropertyNames.firstCall.args[1]).to.deep.equal(expectedPropertyMap);
             });
         });
 

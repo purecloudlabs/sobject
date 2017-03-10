@@ -32,7 +32,7 @@ class SObject {
     */
     constructor(options) {
 
-        validate(options, [ 'connection' ], this);
+        validate(options, [ 'connection' ], this, { addPrefix: '_' });
         this._objectName = options.objectName || options.salesForceObjectName; // Respect the legacy `salesForceObjectName` option.
         this._propertyMap = options.propertyMap;
         this._logger = options.logger || new MockLogger();
@@ -188,7 +188,7 @@ class SObject {
     */
     insert(entity) {
         return this.convertToSalesForceFormat(entity)
-        .then(formattedEntity => this._request(this.getInsertExecuteParams(formattedEntity)))
+        .then(formattedEntity => this._request(this.getInsertRequestParams(formattedEntity)))
         .then(response => _.pick(response, [ 'id' ]))
         .catch(error => this._updateAndThrow(error, {entity, method: 'insert'}));
     }

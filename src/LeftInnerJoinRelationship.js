@@ -27,7 +27,7 @@ import { getBasicQueryComparison } from './SObject';
 *    ...
 * }
 */
-export class LeftInnerJoinRelationship {
+class LeftInnerJoinRelationship {
 
     /**
     * @param {Object} options
@@ -62,3 +62,5 @@ export class LeftInnerJoinRelationship {
         return `${this.property} IN (SELECT ${this.relatedObject.comparisonProperty} FROM ${this.relatedObject.name} WHERE ${getBasicQueryComparison(this.relatedObject.queryValueProperty, value)})`;
     }
 }
+
+export default LeftInnerJoinRelationship;
