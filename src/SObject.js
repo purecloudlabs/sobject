@@ -9,14 +9,12 @@ import MockLogger from './MockLogger';
 const DEFAULT_API_VERSION = '34.0';
 
 /**
-* A class that provides basic functionality for performing CRUD operations on SalesForce
-* SObjects via SalesForce's REST API. To use this class, extend it and override at least
-* objectName and propertyMap in your subclass - this will allow you to use the default
-* implementations of the crud methods and the methods for converting to/from the SalesForce format.
-* If you need additional functionality, you can either update this base class to support the functionality
-* if it is general enough to be useful for others and doesn't break default functionality, or you can
-* override / extend the method in your subclass.
-* @abstract
+* Allows queries and CRUD operations to be performed on SalesForce SObjects with minimal setup and a friendly API.
+*
+* To use this class, either extend it and override the objectName and propertyMap properties, or simply create an
+* instance by passing those properties into this class's constructor. Either way will allow you to use the default
+* implementations of the CRUD methods which automatically convert property names from SalesForce format
+* (i.e. with funky prefixes) and friendly camelCase format, and vice versa.
 */
 class SObject {
 
@@ -52,7 +50,7 @@ class SObject {
     }
 
     /**
-    * Override this class to specify your SObject's name.
+    * Override this class to specify your SObject's name, including any required prefixes and suffixes.
     *
     * @example
     * get objectName() {
@@ -62,6 +60,7 @@ class SObject {
     * @virtual
     */
     get objectName() {
+
         if (this._objectName) { return this._objectName; }
         // Respect the legacy `salesForceObjectName` property if it is overridden.
         if (this.salesForceObjectName) { return this.salesForceObjectName; }
@@ -69,14 +68,14 @@ class SObject {
     }
 
     /**
-    * If your object's properties are static (e.g. not based on a feature toggle), you can override this property to
-    * return an object that maps your 'friendly' property names to their ugly SalesForce counterparts, which can
-    * be period-delimited to show nested objects.
+    * Defines friendly (i.e. camelCase) names for your SObject's ugly SalesForce property names, which are often
+    * riddled with suffixes, prefixes, underscores, etc. Nested SalesForce objects are supported (e.g. 'Contact.Customer_Rep__r.Name').
     *
-    * @see getPropertyMap - The public api for querying an entity's property map, which can be overridden to specify
-    *                       an entity's properties dynamically (e.g. based on a feature toggle).
+    * Override this property to define your SObject's properties. If you instead need the property map to be dynamic
+    * and determined asynchronously (for example, if you need to check a feature toggle to determine which properties
+    * should be included), then override the asynchronous `getPropertyMap()` method instead.
     *
-    * @ example
+    * @example
     * get propertyMap() {
     *     return {
     *         name: 'Name',
@@ -84,8 +83,8 @@ class SObject {
     *     };
     * }
     *
-    * @abstract
-    * @returns {object}
+    * @virtual
+    * @type {Object}
     */
     get propertyMap() {
 
@@ -96,23 +95,35 @@ class SObject {
     }
 
     /**
-    * The public api for getting the instance's property map, which is an object that maps friendly
-    * property names to the SalesForce-specific property names.
+    * Defines friendly (i.e. camelCase) names for your SObject's ugly SalesForce property names, which are often
+    * riddled with suffixes, prefixes, underscores, etc. Nested SalesForce objects are supported
+    * (e.g. 'Contact.Customer_Rep__r.Name').
     *
-    * The default implementation just returns the `propertyMap` property wrapped in a promise, so that the only
-    * thing that most subclasses need to implement is to override `propertyMap`. If a subclass needs to conditionally
-    * include some properties (e.g. based on a feature toggle), it can instead override `getPropertyMap` so that it can
-    * return the property map asynchronously.
+    * In most cases, an SObject's property map is static, so it's easiest to override `propertyMap` to define your
+    * SObject's properties. If you instead need the property map to be dynamic and determined asynchronously
+    * (for example, if you need to check a feature toggle to determine which properties should be included),
+    * then override this asynchronous method instead. This can be useful, for example, for managing deployments.
+    * Since `query()` and `get()` query for all the properties defined in the property map, the property map
+    * can't contain any properties that haven't been defined in SalesForce yet (i.e. haven't been deployed yet).
     *
     * @example
     * getPropertyMap() {
-    *     return {
-    *         name: 'Name',
-    *         primaryContactEmail: 'Primary_Contact__r.Email__c'
-    *     };
-    * }
-
     *
+    *    let propertyMap = {
+    *        name: 'Name',
+    *        // ...
+    *    };
+    *    return checkMyFeatureToggle()
+    *    .then(emailPropertyEnabled => {
+    *
+    *        if (emailPropertyEnabled) {
+    *            propertyMap.primaryContactEmail: 'Primary_Contact__r.Email__c'
+    *        }
+    *        return propertyMap;
+    *    });
+    * }
+    *
+    * @virtual
     * @returns {Promise.<Object>}
     */
     getPropertyMap() {
@@ -122,24 +133,19 @@ class SObject {
 
 
     /**
-    * Gets an entity with the given `id` or other identifier(s), converts it from the ugly SalesForce format to the friendly format,
-    * and returns it.
+    * Fetches a single object matching the property or combination of properties provided. If multiple
+    * entities match the given options, then the first is returned. If there are no matches, a
+    * `ResourceNotFoundError` is thrown. Use `query()` instead if you want greater than or less than 1 result.
     *
-    * @virtual
-    * @param   {object} entity
-    * @param   {string} [entity.id]
-    * @param   {*}      [entity.{*}] - Any other field name/value pairs to use to look up the entity.
-    * @returns {object} result
-    * @returns {string} result.id
+    * @param   {Object} options - Names and values of properties that will be ANDed together for the search
+    * @returns {Promise.<Object>}
     * @throws  {ParameterValidationError}
     * @throws  {ResourceNotFoundError}
-    * @throws  {BadRequestError}
     */
     get(options) {
 
         return this.getPropertyNames()
         .then(propertyNames => {
-
             // Validate that a value was provided for at least one property.
             validate(options, [ propertyNames ]);
 
@@ -153,20 +159,16 @@ class SObject {
             if (results.length) {
                 return results[0];
             }
-            throw new ResourceNotFoundError(`No ${this.objectName} found for the properties: ${JSON.stringify(options)}`);
+            throw new this.resourceNotFoundErrorClass(`No ${this.objectName} found for the properties: ${JSON.stringify(options)}`);
         })
         .catch(error => this._updateAndThrow(error, {options, method: 'get'}));
     }
 
     /**
-    * Queries SalesForce according to the given query options, converts the ugly SalesForce entities to their friendly versions,
-    * and returns them. Query options can be provided for filtering or they can be omitted to select all of the entities.
-    * You can override this method if you want different query behavior.
+    * Queries for entities matching the given search properties. If no options are provided, all entities are returned.
     *
-    * @virtual
-    * @param   {object}          [options] - Friendly property name / value pairs (from propertyMap) that will be ANDed together
-    *                                        in the query predicate. If omitted, all entities will be returned.
-    * @returns {array.<object>}
+    * @param   {object} [options] - Names and values of properties that will be ANDed together for the search
+    * @returns {Promise.<Array.<Object>>}
     */
     query(options) {
         return this.buildQueryStatement(options)
@@ -176,15 +178,11 @@ class SObject {
     }
 
     /**
-    * Converts the given entity from 'friendly' format to the ugly SalesForce format
-    * and inserts it. You can override this method if you want to do additional
-    * formatting or data massaging prior to the insert.
+    * Inserts the given entity.
     *
-    * @virtual
-    * @param   {object} entity
-    * @returns {Object} result
+    * @param   {Object} entity
+    * @returns {Promise.<Object>} result
     * @returns {string} result.id  - The id of the entity created.
-    * @throws  {BadRequestError}
     */
     insert(entity) {
         return this.convertToSalesForceFormat(entity)
@@ -194,19 +192,15 @@ class SObject {
     }
 
     /**
-    * Converts the given entity from 'friendly' format to the ugly SalesForce format
-    * and updates it. You can override this method if you want to do additional
-    * formatting or data massaging prior to the update.
+    * Patches an entity by updating only the properties specified.
     *
-    * @virtual
-    * @param   {object} entity
-    * @param   {string} entity.id
+    * @param   {Object} entity
+    * @param   {string} entity.id  - An `id` property is required for updates.
     * @param   {*}      entity.*   - Properties with which to patch the existing entity.
-    * @returns {object} result
+    * @returns {Object} result
     * @returns {string} result.id
     * @throws  {ParameterValidationError}
     * @throws  {ResourceNotFoundError}
-    * @throws  {BadRequestError}
     */
     update(entity) {
 
@@ -235,16 +229,14 @@ class SObject {
     }
 
     /**
-    * Deletes an entity.
+    * Deletes the given entity entity.
     *
-    * @virtual
     * @param   {Object} options
-    * @param   {string} options.id - The ID of a the entity to delete.
-    * @returns {Object} deletedEntity
+    * @param   {string} options.id - An `id` property is required for deletion.
+    * @returns {Promise.<Object>} deletedEntity
     * @returns {string} deletedEntity.id  - The ID of the entity deleted.
     * @throws  {ParameterValidationError}
     * @throws  {ResourceNotFoundError}
-    * @throws  {BadRequestError}
     */
     delete(options) {
 
@@ -299,9 +291,9 @@ class SObject {
     }
 
     /**
-    * Returns the grotesque SalesForce property names for the properties.
+    * Returns the SalesForce property names defined for the SObject.
     *
-    * @returns {Promise.<Array.<string>>} The grotesque SalesForce property names.
+    * @returns {Promise.<Array.<string>>} The SalesForce property names.
     */
     getSalesForcePropertyNames() {
 
@@ -310,11 +302,11 @@ class SObject {
     }
 
     /**
-    * Transforms the property names of the entity according to the map of SalesForce properties to their
-    * friendly names. You can override this method if you want to do additional or different formatting.
+    * Transforms the property names of the entity according to the property map.
+    * You can override this method if you want to do additional or different formatting.
     *
-    * @param   {object}           entity
-    * @returns {Promise.<object>}
+    * @param   {Object}           entity
+    * @returns {Promise.<Object>}
     * @virtual
     */
     convertFromSalesForceFormat(entity) {
@@ -332,19 +324,33 @@ class SObject {
 
     /**
     * Acts as a customization point for insert requests. A subclass can override this method
-    * to supply additional parameters to execute(), like headers.
-    * @virtual
+    * to supply additional options that will be passed to `connection.request()` for an insert, like headers.
+    *
+    * @example
+    * // Adds the 'Sforce-Auto-Assign' header to prevent SalesForce from assigning a newly inserted
+    * // lead to the default user.
+    * getInsertRequestOptions(...args) {
+    *     let params = super.getInsertRequestOptions(...args);
+    *     if (!params.headers) { params.headers = {}; }
+    *     params.headers['Sforce-Auto-Assign'] = 'FALSE';
+    *     return params;
+    * }
+    *
+    * @param {Object} options - Options that will be passed to `connection.request()` for an insert
     */
-    getInsertRequestOptions(entity) {
+    getInsertRequestOptions(options) {
         return {
             url: this._objectUrlPath,
             method: 'post',
-            json: entity
+            json: options
         };
     }
 
     /**
-    * @returns {Promise.<array>}
+    * Converts an array of entities from their ugly SalesForce format to their friendly format.
+    *
+    * @param   {Array.<Object>} entities
+    * @returns {Promise.<Array.<Object>>}
     * @throws  {ParameterValidationError}
     */
     convertArrayFromSalesForceFormat(entities) {
@@ -357,11 +363,11 @@ class SObject {
     }
 
     /**
-    * Transforms the property names of the entity according to the map returned by getPropertyMap() and
+    * Transforms the property names of the given entity according to the property map and
     * removes properties not included in the map.
     *
-    * @param   {object}   entity
-    * @param   {object}   options
+    * @param   {Object}   entity
+    * @param   {Object}   options
     * @param   {boolean}  [options.includeAttributesProperty] - When we get deserialized SObjects from the REST data API,
     *                                                           each entity has an 'attributes' property containing the name
     *                                                           of its SObject type and its URL. This parameter optionally
@@ -370,7 +376,7 @@ class SObject {
     *                                                           SObject in Apex code.
     * @param   {boolean}  [options.includeNestedProperties]   - Used to optionally allow nested properties in the output (disabled
     *                                                           by default).
-    * @returns {Promise.<object>}
+    * @returns {Promise.<Object>}
     */
     convertToSalesForceFormat(entity, { includeAttributesProperty = false, includeNestedProperties = false } = {}) {
 
@@ -414,6 +420,12 @@ class SObject {
         });
     }
 
+    /**
+    * Converts an array of entities from their frienly format to their ugly SalesForce format.
+    *
+    * @param   {Array.<Object>} entities
+    * @returns {Promise.<Array.<Object>>}
+    */
     convertArrayToSalesForceFormat(entities) {
         return Promise.resolve().then(() => {
             if (!Array.isArray(entities)) {
@@ -424,8 +436,8 @@ class SObject {
     }
 
     /**
-    * Allows a subclass to provide a different class to use instead of the default ResourceNotFoundError.
-    *
+    * A subclass can override this to provide a different class to use instead of the default ResourceNotFoundError.
+    * @virtual
     * @private
     */
     get resourceNotFoundErrorClass() {
@@ -449,7 +461,7 @@ class SObject {
     }
 
     /**
-    * Creates a SOQL query from the given query options.
+    * Builds a SOQL query from the given query options.
     *
     * @param   {Object}           options - Query options, which are the friendly names and values that the query results will match.
     * @returns {Promise.<string>}
@@ -466,23 +478,10 @@ class SObject {
     }
 
     /**
-    * @param   {string} soqlQuery
-    * @returns {object} An object to be passed to `requestor.execute()`.
-    */
-    getQueryExecution(soqlQuery) {
-        return {
-            url: this._queryUrlPath,
-            method: 'get',
-            json: true,
-            qs: {q: soqlQuery}
-        };
-    }
-
-    /**
     * Returns all results for the given SOQL query.
     *
-    * @param   {string}          query
-    * @returns {array.<objects>} results
+    * @param   {string} query    - SOQL query
+    * @returns {Array.<Objects>} - Results in SalesForce format.
     * @throws  {BadRequestError}
     */
     executeQuery(query) {
@@ -511,6 +510,7 @@ class SObject {
     * Builds the SOQL query predicate for query().
     *
     * @param {Object} options - query options
+    * @private
     */
     _buildQueryPredicate(options) {
 
@@ -533,6 +533,7 @@ class SObject {
     * Gets the query comparisons (e.g. [ 'firstName = \'Paula\'', 'age = 30' ]) for basic relationships (i.e. not complex joins).
     *
     * @param {Object} options - query options
+    * @private
     */
     _getBasicQueryComparisons(options) {
 
@@ -548,6 +549,7 @@ class SObject {
     * Gets the query comparisons for complex relationships (e.g. LeftInnerJoinRelationship).
     *
     * @param {Object} options - query options
+    * @private
     */
     _getComplexQueryComparisons(options) {
 
@@ -581,6 +583,7 @@ class SObject {
     * @param {boolean}        queryResponse.done
     * @param {string}         queryResponse.nextRecordsUrl
     * @returns {Promise.<Array.<Object>>}                  - The remaining records
+    * @private
     */
     _getRemainingQueryRecords({ records, done, nextRecordsUrl }) {
 
@@ -622,6 +625,7 @@ export default SObject;
 *
 * @param {string}              property
 * @param {string|number|Array} value
+* @private
 */
 export function getBasicQueryComparison(property, value) {
 

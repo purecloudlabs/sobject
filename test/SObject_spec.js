@@ -128,7 +128,6 @@ describe('SObject', () => {
 
         it(`sets the instance's logger if one is provided`, () => {
 
-
             let customerLogger = { error: spy() };
             constructorParams.logger = customerLogger;
             storage = new SObject(constructorParams);
