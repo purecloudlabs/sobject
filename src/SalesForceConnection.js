@@ -6,13 +6,7 @@ import PromiseHelper from './PromiseHelper';
 import MockLogger from './MockLogger';
 
 /**
- * This class establishes a session with SalesForce's REST data and apexrest APIs and
- * provides a Requestor to send requests to those APIs.
- *
- * CRUD operations on SObjects are performed using the related SObjectStorage class, which uses this class for its
- * connection. To add support for a new SObject type, please create and use a subclass of SObjectStorage
- * (see OpportunityStorage for an example).
- * @class
+ * Manages a session with and requests to SalesForce's REST API.
  */
 class SalesForceConnection {
 
@@ -27,7 +21,6 @@ class SalesForceConnection {
     *                                                              a BadRequestError or ResourceNotFoundError. Default: 4.
     * @param {int}                 [options.requestTimeoutMs]
     * @param {Object}              [options.logger]
-
     */
     constructor(options) {
 

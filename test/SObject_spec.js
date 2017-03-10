@@ -125,6 +125,21 @@ describe('SObject', () => {
             expect(storage.objectName).to.equal(objectName);
             expect(storage.propertyMap).to.equal(propertyMap);
         });
+
+        it(`sets the instance's logger if one is provided`, () => {
+
+
+            let customerLogger = { error: spy() };
+            constructorParams.logger = customerLogger;
+            storage = new SObject(constructorParams);
+
+            return storage.insert() // Invoke insert without args so that an error is thrown and logged.
+            .catch(() => {})        // Swallow the error
+            .then(() => {
+                expect(customerLogger.error.callCount).to.equal(1);
+                expect(customerLogger.error.firstCall.args[0]).to.equal('Error in Salesforce request');
+            });
+        });
     });
 
     describe('when login fails', () => {
