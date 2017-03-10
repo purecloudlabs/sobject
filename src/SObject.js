@@ -188,7 +188,7 @@ class SObject {
     */
     insert(entity) {
         return this.convertToSalesForceFormat(entity)
-        .then(formattedEntity => this._request(this.getInsertRequestParams(formattedEntity)))
+        .then(formattedEntity => this._request(this.getInsertRequestOptions(formattedEntity)))
         .then(response => _.pick(response, [ 'id' ]))
         .catch(error => this._updateAndThrow(error, {entity, method: 'insert'}));
     }
@@ -335,7 +335,7 @@ class SObject {
     * to supply additional parameters to execute(), like headers.
     * @virtual
     */
-    getInsertRequestParams(entity) {
+    getInsertRequestOptions(entity) {
         return {
             url: this._objectUrlPath,
             method: 'post',

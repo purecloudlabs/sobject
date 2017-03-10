@@ -166,18 +166,18 @@ describe('SObject', () => {
             });
         });
 
-        it('passes the formatted entity to getInsertRequestParams() in order to get the params for request()', () => {
+        it('passes the formatted entity to getInsertRequestOptions() in order to get the params for request()', () => {
 
             let formattedEntity = { property1: 'first', property2: 'second' },
                 requestParams = { mockParams: true };
 
             stub(storage, 'convertToSalesForceFormat').returns(Promise.resolve(formattedEntity));
-            stub(storage, 'getInsertRequestParams').returns(requestParams);
+            stub(storage, 'getInsertRequestOptions').returns(requestParams);
 
             return storage.insert(friendlyFormattedEntity)
             .then(() => {
-                expect(storage.getInsertRequestParams.callCount).to.equal(1);
-                expect(storage.getInsertRequestParams.firstCall.args).to.deep.equal([ formattedEntity ]);
+                expect(storage.getInsertRequestOptions.callCount).to.equal(1);
+                expect(storage.getInsertRequestOptions.firstCall.args).to.deep.equal([ formattedEntity ]);
                 expect(connection.request.callCount).to.equal(1);
                 expect(connection.request.firstCall.args).to.deep.equal([ requestParams ]);
             });
