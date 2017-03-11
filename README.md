@@ -91,7 +91,7 @@ accountStorage.get({ name: 'Goofy Roofers' })
 .then(account => {
     // Delete the contact we had created.
     return Promise.all([
-        contactStorage.delete({ id: account.primaryContactId}),
+        contactStorage.delete({ id: account.primaryContactId }),
         accountStorage.update({ id: accountId, primaryContactId: null })
     ]);
 });
