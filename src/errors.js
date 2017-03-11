@@ -23,6 +23,7 @@
 *		alert('Something bad happened, but I have no idea what. Error: ' + error);
 * 	}
 * }
+* @private
 */
 export class ExtendableError extends Error {
 
@@ -37,11 +38,14 @@ export class ExtendableError extends Error {
 }
 
 /**
-* Error indicating that a requested resource could not be found (i.e. HTTP status 404).
+* Indicates that `SObject.prototype.get()` couldn't find any records matching the search options provided to it.
+* You can import this error class to check if an error is an instance of it. In scenarios where you
+* prefer an error not be thrown if there is no matching record, use `query()` instead of `get()`.
 */
 export class ResourceNotFoundError extends ExtendableError {}
 
 /**
 * Error indicating that an abstract method was not implemented.
+* @private
 */
 export class NotImplementedError extends ExtendableError {}

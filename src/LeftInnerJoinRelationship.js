@@ -2,29 +2,35 @@ import { validate } from 'parameter-validator';
 import { getBasicQueryComparison } from './SObject';
 
 /**
-* Whereas most SObject properties are mapped with a basic relationship to rename the property
-* (e.g. { listPrice: 'List_Price__c' }), this class can be used to define a more complex relationship
-* involving a left inner join.
-*
-* For more info on the different types of SOQL joins, see this page:
-* https://developer.salesforce.com/page/A_Deeper_look_at_SOQL_and_Relationship_Queries_on_Force.com
+* Most often, an entry in SObject.prototype.propertyMap simply defines a friendly alias that maps to specific
+* SalesForce property (e.g. `{ listPrice: 'List_Price__c' }`). Where this class comes in is when a simple
+* relationship won't cut it you need to define a more complex relationship involving a
+* [left inner join](https://developer.salesforce.com/page/A_Deeper_look_at_SOQL_and_Relationship_Queries_on_Force.com).
 *
 * @example
-* // Example of how this relationship can be used to add a `pureCloudOrgId` object to a quote object.
-* // The result is that `storage.query({ pureCloudOrgId: 'org0' })` gets translated into
-* // "SELECT <other properties> FROM zqu__Quote__c where zqu__Account__c IN (SELECT Account__c FROM PureCloud_Organization__c WHERE Org_ID__c = 'org0'"
+* // For this example, imagine two custom objects that each have a property which references an Account:
+* //
+* // 1. Organization__c object with properties:
+* //     - Account__c
+* //     - Org_ID__c
+* //
+* // 2. Quote__c with property:
+* //     - Account__c
+* //
+* // This example demonstrates how to add an `organizationId` property for the quote object.
+* // The result is that `quoteStorage.query({ organizationId: 'org0' })` gets translated into the query
+* // "SELECT <other properties> FROM Quote__c where Account__c IN (SELECT Account__c FROM Organization__c WHERE Org_ID__c = 'org0'"
 *
 * get propertyMap {
-*    ...
-*    pureCloudOrgId: new LeftInnerJoinRelationship({
-*        property: 'zqu__Account__c',
+*    // ...
+*    organizationId: new LeftInnerJoinRelationship({
+*        property: 'Account__c',
 *        relatedObject: {
-*            name: 'PureCloud_Organization__c',
-*            comparisonProperty: 'Account__c', // PureCloud_Organization__r.Account__c
-*            queryValueProperty: 'Org_ID__c'   // PureCloud_Organization__r.Org_ID__c
+*            name: 'Organization__c',
+*            comparisonProperty: 'Account__c', // Organization__r.Account__c
+*            queryValueProperty: 'Org_ID__c'   // Organization__r.Org_ID__c
 *        }
 *    })
-*    ...
 * }
 */
 class LeftInnerJoinRelationship {

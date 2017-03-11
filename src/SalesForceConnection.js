@@ -6,9 +6,11 @@ import PromiseHelper from './PromiseHelper';
 import MockLogger from './MockLogger';
 
 /**
- * Manages a session with and requests to SalesForce's REST API, including authentication and automatically retrying requests.
+ * Manages a session with and sends requests to SalesForce's REST API. It handles authentication and automatically retries
+ * common request failures (e.g. the infamous `UNABLE_TO_LOCK_ROW` error).
+ *
  * This class's interface consists of a single `request()` method, so if you want different request-level functionality, you
- * can extend this class or implement a replacement with the same interface.
+ * can extend this class or implement a replacement which implements the same interface.
  */
 class SalesForceConnection {
 

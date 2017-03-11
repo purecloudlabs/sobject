@@ -43,10 +43,10 @@ var DEFAULT_API_VERSION = '34.0';
 /**
 * Allows queries and CRUD operations to be performed on SalesForce SObjects with minimal setup and a friendly API.
 *
-* To use this class, either extend it and override the objectName and propertyMap properties, or simply create an
-* instance by passing those properties into this class's constructor. Either way will allow you to use the default
-* implementations of the CRUD methods which automatically convert property names from SalesForce format
-* (i.e. with funky prefixes) and friendly camelCase format, and vice versa.
+* To use this class, either extend it and override the `objectName` and `propertyMap` properties, or simply create an
+* instance by passing those properties into this class's constructor. Either approach will allow you to use the default
+* implementations of the CRUD methods (e.g. `query()`, `insert()`, etc.) **which automatically convert property names from SalesForce format
+* (i.e. with funky prefixes) to the friendly camelCase format, and vice versa**.
 */
 
 var SObject = function () {
