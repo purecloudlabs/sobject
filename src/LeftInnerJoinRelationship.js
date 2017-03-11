@@ -2,13 +2,13 @@ import { validate } from 'parameter-validator';
 import { getBasicQueryComparison } from './SObject';
 
 /**
-* Most often, an entry in SObject.prototype.propertyMap simply defines a friendly alias that maps to specific
-* SalesForce property (e.g. `{ listPrice: 'List_Price__c' }`). Where this class comes in is when a simple
-* relationship won't cut it you need to define a more complex relationship involving a
+* Most often, an entry in `SObject.prototype.propertyMap` simply defines a friendly alias for a property of a
+* SalesForce SObject (e.g. `{ listPrice: 'List_Price__c' }`). However, there comes a time in every developer's life when
+* a simple relationship won't cut it, and that's when this class comes in. It lets you define a more complex relationship involving a
 * [left inner join](https://developer.salesforce.com/page/A_Deeper_look_at_SOQL_and_Relationship_Queries_on_Force.com).
 *
 * @example
-* // For this example, imagine two custom objects that each have a property which references an Account:
+* // For this example, imagine we have two custom objects that each have a property which references an Account:
 * //
 * // 1. Organization__c object with properties:
 * //     - Account__c
@@ -62,6 +62,7 @@ class LeftInnerJoinRelationship {
     *
     * @param   {string|number} value
     * @returns {string}
+    * @private
     */
     createQueryComparison(value) {
 

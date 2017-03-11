@@ -81,9 +81,9 @@ var ExtendableError = exports.ExtendableError = function (_extendableBuiltin2) {
 }(_extendableBuiltin(Error));
 
 /**
-* Indicates that `SObject.prototype.get()` couldn't find any records matching the search options provided to it.
-* You can import this error class to check if an error is an instance of it. In scenarios where you
-* prefer an error not be thrown if there is no matching record, use `query()` instead of `get()`.
+* Thrown by `SObject.prototype.get()` if it doesn't find a record matching the provided search options.
+* You can import this class to check if an error is an instance of it. In scenarios where you would
+* prefer this error not be thrown, use `query()` instead of `get()`.
 */
 
 

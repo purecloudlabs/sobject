@@ -10,21 +10,22 @@ import MockLogger from './MockLogger';
  * common request failures (e.g. the infamous `UNABLE_TO_LOCK_ROW` error).
  *
  * This class's interface consists of a single `request()` method, so if you want different request-level functionality, you
- * can extend this class or implement a replacement which implements the same interface.
+ * can easily extend this class or implement a replacement which implements the same interface.
  */
 class SalesForceConnection {
 
     /**
     * @param {Object}              options
-    * @param {string}              options.loginUrl              - SalesForce OAuth login URI
+    * @param {string}              options.loginUrl              - SalesForce OAuth login URI (e.g. `'https://test.salesforce.com/services/oauth2/token'`).
     * @param {string}              options.clientId              - API user client ID
     * @param {string}              options.clientSecret          - API user client secret
-    * @param {string}              options.username
-    * @param {string}              options.password
-    * @param {int}                 [options.requestRetriesMax]   - The number of times an request will be retried if it throws an error that's not
-    *                                                              a BadRequestError or ResourceNotFoundError. Default: 4.
-    * @param {int}                 [options.requestTimeoutMs]
-    * @param {Object}              [options.logger]
+    * @param {string}              options.username              - API user username
+    * @param {string}              options.password              - Depending on your security settings, you often will need to append a security
+    *                                                              token to the end of your password.
+    * @param {int}                 [options.requestRetriesMax=4] - The number of times an request will be retried if it throws an error that's not
+    *                                                              a BadRequestError or ResourceNotFoundError.
+    * @param {int}                 [options.requestTimeoutMs=30000]
+    * @param {Object}              [options.logger]              - Optional Winston-style logger for capturing log output.
     */
     constructor(options) {
 
@@ -46,10 +47,10 @@ class SalesForceConnection {
     * although in reality, only the small subset of options listed here are used by SObject.
     *
     * @param   {Object}      options          - options passed to the `request` module
-    * @param   {string}      options.url      - The relative API URL path (e.g. 'services/data/v36.0/sobjects/Account/00129000009VuH3AAK').
+    * @param   {string}      options.url      - The relative API URL path (e.g. `'services/data/v36.0/sobjects/Account/00129000009VuH3AAK'`).
     *                                           Unlike the other options, this one isn't passed directly to the `request` module; it's appended
     *                                           to the instance URL obtained through authentication
-    * @param   {string}      options.method   - e.g. 'post', 'get'
+    * @param   {string}      options.method   - e.g. `'post'`, `'get'`
     * @param   {Object|bool} options.json
     * @param   {Object}      options.headers
     * @returns {Promise} - Promise that resolve to the deserialized response body

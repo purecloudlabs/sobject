@@ -41,25 +41,28 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var DEFAULT_API_VERSION = '34.0';
 
 /**
-* Allows queries and CRUD operations to be performed on SalesForce SObjects with minimal setup and a friendly API.
+* Allows queries and CRUD operations to be performed on a SalesForce SObject with minimal setup and a friendly API.
 *
-* To use this class, either extend it and override the `objectName` and `propertyMap` properties, or simply create an
+* Simply give it the SObject's name (e.g. `Account`) and a `propertyMap` which defines friendly names for the properties
+* in which you're interested (e.g. `{ primaryContactName: 'Primary_Contact__r.Name' }`). Now you can query and update records
+* using the friendly names, and this class takes care of the conversion to and from the SalesForce format.
+*
+* To use this class, either extend it to override its `objectName` and `propertyMap` properties, or simply create an
 * instance by passing those properties into this class's constructor. Either approach will allow you to use the default
-* implementations of the CRUD methods (e.g. `query()`, `insert()`, etc.) **which automatically convert property names from SalesForce format
-* (i.e. with funky prefixes) to the friendly camelCase format, and vice versa**.
+* implementations of the CRUD methods (e.g. `query()`, `insert()`, etc.) which automatically handle the property name conversion.
 */
 
 var SObject = function () {
 
     /**
     * @param {object}               options
-    * @param {SalesForceConnection} options.connection          - Either an instance of this module's default SalesForceConnection
-    *                                                             class or a custom version that implements its simple interface.
-    * @param {string}               [options.objectName]        - Allows the objectName to be defined without
+    * @param {SalesForceConnection} options.connection          - Either an instance of this module's default `SalesForceConnection`
+    *                                                             class or a custom version which implements that simple interface.
+    * @param {string}               [options.objectName]        - Allows the `objectName` to be defined without
     *                                                             creating a subclass to override that property.
-    * @param {object}               [options.propertyMap]       - Allows the propertyMap to be defined without
+    * @param {object}               [options.propertyMap]       - Allows the `propertyMap` to be defined without
     *                                                             creating a subclass to override that property.
-    * @param {int|float|string}     [options.apiVersion='34.0'] - e.g. '30.0', 31, 32.0
+    * @param {int|float|string}     [options.apiVersion='34.0'] - e.g. `'30.0'`, `31`, `32.0`
     * @param {Object}               [options.logger]            - Optional Winston-style logger for capturing log output.
     */
     function SObject(options) {
@@ -92,7 +95,7 @@ var SObject = function () {
     *     return 'Order__c'
     * }
     *
-    * @virtual
+    * @type {string}
     */
 
 
@@ -101,16 +104,15 @@ var SObject = function () {
 
 
         /**
-        * Defines friendly (i.e. camelCase) names for your SObject's ugly SalesForce property names, which are often
-        * riddled with suffixes, prefixes, underscores, etc. Nested SalesForce objects are supported
-        * (e.g. 'Contact.Customer_Rep__r.Name').
+        * Defines friendly (i.e. camelCase) names for your SObject's SalesForce property names, which are often
+        * riddled with suffixes, prefixes, and underscores. Nested SalesForce objects are also supported (e.g. `'Contact.Customer_Rep__r.Name'`).
         *
-        * In most cases, an SObject's property map is static, so it's easiest to override `propertyMap` to define your
-        * SObject's properties. If you instead need the property map to be dynamic and determined asynchronously
-        * (for example, if you need to check a feature toggle to determine which properties should be included),
+        * In most use cases, a property map is static, so it's easiest to override `propertyMap` to define your
+        * SObject's properties. If you instead need the property map to be *dynamic* and determined asynchronously
+        * (for example, if you need to check a feature toggle to determine whether a property should be included),
         * then override this asynchronous method instead. This can be useful, for example, for managing deployments.
         * Since `query()` and `get()` query for all the properties defined in the property map, the property map
-        * can't contain any properties that haven't been defined in SalesForce yet (i.e. haven't been deployed yet).
+        * can't contain any properties that haven't been defined in SalesForce (i.e. haven't been deployed yet).
         *
         * @example
         * getPropertyMap() {
@@ -123,13 +125,12 @@ var SObject = function () {
         *    .then(emailPropertyEnabled => {
         *
         *        if (emailPropertyEnabled) {
-        *            propertyMap.primaryContactEmail: 'Primary_Contact__r.Email__c'
+        *            propertyMap.primaryContactEmail = 'Primary_Contact__r.Email__c';
         *        }
         *        return propertyMap;
         *    });
         * }
         *
-        * @virtual
         * @returns {Promise.<Object>}
         */
         value: function getPropertyMap() {
@@ -144,7 +145,6 @@ var SObject = function () {
         *
         * @param   {Object} options - Names and values of properties that will be ANDed together for the search
         * @returns {Promise.<Object>}
-        * @throws  {ParameterValidationError}
         * @throws  {ResourceNotFoundError}
         */
 
@@ -223,8 +223,6 @@ var SObject = function () {
         * @param   {*}      entity.*   - Properties with which to patch the existing entity.
         * @returns {Object} result
         * @returns {string} result.id
-        * @throws  {ParameterValidationError}
-        * @throws  {ResourceNotFoundError}
         */
 
     }, {
@@ -267,8 +265,6 @@ var SObject = function () {
         * @param   {string} options.id - An `id` property is required for deletion.
         * @returns {Promise.<Object>} deletedEntity
         * @returns {string} deletedEntity.id  - The ID of the entity deleted.
-        * @throws  {ParameterValidationError}
-        * @throws  {ResourceNotFoundError}
         */
 
     }, {
@@ -294,8 +290,8 @@ var SObject = function () {
         * Like `getPropertyMap`, but the reverse - mapping ugly SalesForce property names of
         * properties to their friendly names.
         *
-        * Unlike getPropertyMap, which can include both basic name-to-name mappings and more complex
-        * relationship type object (@see LeftInnerJoinRelationship), reversePropertyMap only includes
+        * Unlike `getPropertyMap`, which can include both basic name-to-name mappings and more complex
+        * relationship type objects (i.e. `LeftInnerJoinRelationship`), reversePropertyMap only includes
         * basic name-to-name mappings.
         *
         * @returns {Promise.<Object>}
@@ -357,7 +353,6 @@ var SObject = function () {
         *
         * @param   {Object}           entity
         * @returns {Promise.<Object>}
-        * @virtual
         */
 
     }, {
@@ -407,7 +402,6 @@ var SObject = function () {
         *
         * @param   {Array.<Object>} entities
         * @returns {Promise.<Array.<Object>>}
-        * @throws  {ParameterValidationError}
         */
 
     }, {
@@ -536,7 +530,6 @@ var SObject = function () {
 
         /**
         * A subclass can override this to provide a different class to use instead of the default ResourceNotFoundError.
-        * @virtual
         * @private
         */
 
@@ -567,7 +560,6 @@ var SObject = function () {
         *
         * @param   {string} query    - SOQL query
         * @returns {Array.<Objects>} - Results in SalesForce format.
-        * @throws  {BadRequestError}
         */
 
     }, {
@@ -738,8 +730,8 @@ var SObject = function () {
         }
 
         /**
-        * Defines friendly (i.e. camelCase) names for your SObject's ugly SalesForce property names, which are often
-        * riddled with suffixes, prefixes, underscores, etc. Nested SalesForce objects are supported (e.g. 'Contact.Customer_Rep__r.Name').
+        * Defines friendly (i.e. camelCase) names for your SObject's SalesForce property names, which are often
+        * riddled with suffixes, prefixes, and underscores. Nested SalesForce objects are also supported (e.g. `'Contact.Customer_Rep__r.Name'`).
         *
         * Override this property to define your SObject's properties. If you instead need the property map to be dynamic
         * and determined asynchronously (for example, if you need to check a feature toggle to determine which properties
@@ -753,7 +745,6 @@ var SObject = function () {
         *     };
         * }
         *
-        * @virtual
         * @type {Object}
         */
 
