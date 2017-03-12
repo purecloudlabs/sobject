@@ -22,7 +22,7 @@
     "rest",
     "api"
   ],
-  "author": "Nathan Hill <binarynate@gmail.com> (https://www.linkedin.com/in/binarynate)",
+  "author": "Nathan Hill <binarynate@gmail.com> (https://github.com/BinaryNate)",
   "license": "MIT",
   "dependencies": {
     "flat": "^2.0.1",
