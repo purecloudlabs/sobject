@@ -100,9 +100,9 @@ implementations of the CRUD methods (e.g. `query()`, `insert()`, etc.) which aut
     * [.getPropertyMap()](#SObject+getPropertyMap) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.get(options)](#SObject+get) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.query([options])](#SObject+query) ⇒ <code>Promise.&lt;Array.&lt;Object&gt;&gt;</code>
-    * [.insert(entity)](#SObject+insert) ⇒ <code>Promise.&lt;Object&gt;</code> &#124; <code>string</code>
-    * [.update(entity)](#SObject+update) ⇒ <code>Object</code> &#124; <code>string</code>
-    * [.delete(options)](#SObject+delete) ⇒ <code>Promise.&lt;Object&gt;</code> &#124; <code>string</code>
+    * [.insert(entity)](#SObject+insert) ⇒ <code>Promise.&lt;Object&gt;</code>
+    * [.update(entity)](#SObject+update) ⇒ <code>Object</code>
+    * [.delete(options)](#SObject+delete) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.getReversePropertyMap()](#SObject+getReversePropertyMap) ⇒ <code>Promise.&lt;Object&gt;</code>
     * [.getPropertyNames()](#SObject+getPropertyNames) ⇒ <code>Promise.&lt;Array.&lt;string&gt;&gt;</code>
     * [.getSalesForcePropertyNames()](#SObject+getSalesForcePropertyNames) ⇒ <code>Promise.&lt;Array.&lt;string&gt;&gt;</code>
@@ -221,11 +221,11 @@ Queries for entities matching the given search properties. If no options are pro
 
 <a name="SObject+insert"></a>
 
-### sObject.insert(entity) ⇒ <code>Promise.&lt;Object&gt;</code> &#124; <code>string</code>
+### sObject.insert(entity) ⇒ <code>Promise.&lt;Object&gt;</code>
 Inserts the given entity.
 
 **Kind**: instance method of <code>[SObject](#SObject)</code>  
-**Returns**: <code>Promise.&lt;Object&gt;</code> - result<code>string</code> - result.id  - The id of the entity created.  
+**Returns**: <code>Promise.&lt;Object&gt;</code> - - Object with an `id` property indicating the ID of the created entity.  
 
 | Param | Type |
 | --- | --- |
@@ -233,11 +233,11 @@ Inserts the given entity.
 
 <a name="SObject+update"></a>
 
-### sObject.update(entity) ⇒ <code>Object</code> &#124; <code>string</code>
+### sObject.update(entity) ⇒ <code>Object</code>
 Patches an entity by updating only the properties specified.
 
 **Kind**: instance method of <code>[SObject](#SObject)</code>  
-**Returns**: <code>Object</code> - result<code>string</code> - result.id  
+**Returns**: <code>Object</code> - result     - Object with an `id` property indicating the ID of the updated entity.  
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -247,11 +247,11 @@ Patches an entity by updating only the properties specified.
 
 <a name="SObject+delete"></a>
 
-### sObject.delete(options) ⇒ <code>Promise.&lt;Object&gt;</code> &#124; <code>string</code>
+### sObject.delete(options) ⇒ <code>Promise.&lt;Object&gt;</code>
 Deletes the given entity entity.
 
 **Kind**: instance method of <code>[SObject](#SObject)</code>  
-**Returns**: <code>Promise.&lt;Object&gt;</code> - deletedEntity<code>string</code> - deletedEntity.id  - The ID of the entity deleted.  
+**Returns**: <code>Promise.&lt;Object&gt;</code> - - Object with an `id` property indicating the ID of the deleted entity.  
 
 | Param | Type | Description |
 | --- | --- | --- |

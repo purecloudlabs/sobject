@@ -181,8 +181,7 @@ class SObject {
     * Inserts the given entity.
     *
     * @param   {Object} entity
-    * @returns {Promise.<Object>} result
-    * @returns {string} result.id  - The id of the entity created.
+    * @returns {Promise.<Object>} - Object with an `id` property indicating the ID of the created entity.
     */
     insert(entity) {
         return this.convertToSalesForceFormat(entity)
@@ -197,8 +196,7 @@ class SObject {
     * @param   {Object} entity
     * @param   {string} entity.id  - An `id` property is required for updates.
     * @param   {*}      entity.*   - Properties with which to patch the existing entity.
-    * @returns {Object} result
-    * @returns {string} result.id
+    * @returns {Object} result     - Object with an `id` property indicating the ID of the updated entity.
     */
     update(entity) {
 
@@ -231,8 +229,7 @@ class SObject {
     *
     * @param   {Object} options
     * @param   {string} options.id - An `id` property is required for deletion.
-    * @returns {Promise.<Object>} deletedEntity
-    * @returns {string} deletedEntity.id  - The ID of the entity deleted.
+    * @returns {Promise.<Object>}  - Object with an `id` property indicating the ID of the deleted entity.
     */
     delete(options) {
 
