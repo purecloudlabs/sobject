@@ -1,7 +1,7 @@
 {
   "name": "sobject",
   "version": "1.0.0",
-  "description": "Allows queries and CRUD operations to be performed on SalesForce SObjects with minimal setup and a friendly API.",
+  "description": "Perform queries and CRUD operations on SalesForce SObjects with minimal setup and a friendly API.",
   "main": "dist/index.js",
   "scripts": {
     "lint": "jshint src && jshint test",
