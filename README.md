@@ -97,7 +97,7 @@ accountStorage.get({ name: 'Goofy Roofers' })
 });
 ```
 
-For more detailed information, check out [this module's API docs](https://github.com/MyPureCloud/sobject) and the [SalesForce documentation on setting up REST API authorization](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/quickstart_oauth.htm).
+For more detailed information, check out [this module's API docs](https://github.com/MyPureCloud/sobject/blob/master/docs/api.md) and the [SalesForce documentation on setting up REST API authorization](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/quickstart_oauth.htm).
 
 ## Development
 
