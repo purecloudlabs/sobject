@@ -4,4 +4,5 @@ export default SObject;
 export { default as SObject } from './SObject';
 
 export { default as SalesForceConnection } from './SalesForceConnection';
+export { default as LeftInnerJoinRelationship } from './LeftInnerJoinRelationship';
 export { ResourceNotFoundError } from './errors';
