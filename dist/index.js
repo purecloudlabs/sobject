@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.ResourceNotFoundError = exports.SalesForceConnection = exports.SObject = undefined;
+exports.ResourceNotFoundError = exports.LeftInnerJoinRelationship = exports.SalesForceConnection = exports.SObject = undefined;
 
 var _SObject = require('./SObject');
 
@@ -20,6 +20,15 @@ Object.defineProperty(exports, 'SalesForceConnection', {
   enumerable: true,
   get: function get() {
     return _interopRequireDefault(_SalesForceConnection).default;
+  }
+});
+
+var _LeftInnerJoinRelationship = require('./LeftInnerJoinRelationship');
+
+Object.defineProperty(exports, 'LeftInnerJoinRelationship', {
+  enumerable: true,
+  get: function get() {
+    return _interopRequireDefault(_LeftInnerJoinRelationship).default;
   }
 });
 
