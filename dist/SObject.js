@@ -802,6 +802,8 @@ exports.default = SObject;
 function getBasicQueryComparison(property, value) {
 
     if (typeof value === 'string') {
+        // Escape any single quotes within the value string.
+        value = value.replace('\'', '\\\'');
         // Include single quotes for a string literal.
         return property + ' = \'' + value + '\'';
     } else if (Array.isArray(value)) {
