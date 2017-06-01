@@ -479,6 +479,16 @@ describe('SObject', () => {
             return storage.getPropertyNames()
             .then(propertyNames => expect(propertyNames).to.deep.equal(Object.keys(propertyMap).sort()));
         });
+
+        it('ignores undefined properties', () => {
+
+            let expectedPropertyNames = Object.keys(propertyMap).sort();
+            propertyMap.propertyThatShouldBeIgnored = undefined;
+
+            storage.getPropertyMap = stub().returns(Promise.resolve(propertyMap));
+            return storage.getPropertyNames()
+            .then(propertyNames => expect(propertyNames).to.deep.equal(expectedPropertyNames));
+        });
     });
 
     describe('getSalesForcePropertyNames()', () => {

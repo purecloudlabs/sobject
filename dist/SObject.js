@@ -325,7 +325,10 @@ var SObject = function () {
         value: function getPropertyNames() {
 
             return this.getPropertyMap().then(function (propertyMap) {
-                return Object.keys(propertyMap).sort();
+                return Object.keys(propertyMap).filter(function (key) {
+                    return propertyMap[key];
+                }) // Ignore `undefined` properties.
+                .sort();
             });
         }
 

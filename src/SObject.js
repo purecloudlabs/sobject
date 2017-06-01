@@ -280,7 +280,10 @@ class SObject {
     getPropertyNames() {
 
         return this.getPropertyMap()
-        .then(propertyMap => Object.keys(propertyMap).sort());
+        .then(propertyMap => Object.keys(propertyMap)
+                             .filter(key => propertyMap[key]) // Ignore `undefined` properties.
+                             .sort()
+        );
     }
 
     /**
